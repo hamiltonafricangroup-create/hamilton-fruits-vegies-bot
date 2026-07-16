@@ -1,0 +1,26 @@
+[
+  {
+    "keywords": ["delivery time", "how long", "when will", "eta"],
+    "answer": "We usually deliver within 24-48 hours of confirming your order, depending on your location and order size."
+  },
+  {
+    "keywords": ["pay", "payment", "cash", "mpesa", "card"],
+    "answer": "Payment is made in cash on delivery using our mobile card/cash machine. No need to pay in advance."
+  },
+  {
+    "keywords": ["area", "location", "deliver to", "do you deliver"],
+    "answer": "We deliver across [YOUR DELIVERY AREAS]. Let us know your area and we'll confirm if we cover it."
+  },
+  {
+    "keywords": ["minimum order", "smallest order"],
+    "answer": "There's no strict minimum for individual orders. For corporate/bulk orders, please place your order at least 2 days in advance."
+  },
+  {
+    "keywords": ["fresh", "quality", "organic"],
+    "answer": "All our produce is sourced fresh daily to ensure the best quality for you."
+  },
+  {
+    "keywords": ["cancel", "change order", "edit order"],
+    "answer": "To cancel or change an order, just message us here directly and we'll sort it out for you."
+  }
+]

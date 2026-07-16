@@ -1,0 +1,17 @@
+{
+  "name": "whatsapp-fruit-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp order-taking bot for a fruit and vegetable delivery business",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

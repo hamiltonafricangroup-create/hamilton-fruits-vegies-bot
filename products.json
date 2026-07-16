@@ -1,0 +1,12 @@
+[
+  { "id": "tomatoes", "name": "Tomatoes", "unit": "kg", "price": 150 },
+  { "id": "onions", "name": "Onions", "unit": "kg", "price": 120 },
+  { "id": "potatoes", "name": "Potatoes", "unit": "kg", "price": 100 },
+  { "id": "cabbage", "name": "Cabbage", "unit": "head", "price": 80 },
+  { "id": "bananas", "name": "Bananas", "unit": "bunch", "price": 150 },
+  { "id": "oranges", "name": "Oranges", "unit": "kg", "price": 130 },
+  { "id": "mangoes", "name": "Mangoes", "unit": "kg", "price": 200 },
+  { "id": "spinach", "name": "Spinach (Sukuma)", "unit": "bunch", "price": 50 },
+  { "id": "carrots", "name": "Carrots", "unit": "kg", "price": 110 },
+  { "id": "avocado", "name": "Avocado", "unit": "piece", "price": 30 }
+]
