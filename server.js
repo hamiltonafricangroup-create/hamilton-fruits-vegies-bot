@@ -34,6 +34,20 @@ const {
 
 const GRAPH_URL = `https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`;
 
+// Fail loudly on startup instead of silently dropping orders later
+const missingVars = [];
+if (!WHATSAPP_TOKEN) missingVars.push("WHATSAPP_TOKEN");
+if (!PHONE_NUMBER_ID) missingVars.push("PHONE_NUMBER_ID");
+if (!VERIFY_TOKEN) missingVars.push("VERIFY_TOKEN");
+if (!OWNER_WHATSAPP_NUMBER) missingVars.push("OWNER_WHATSAPP_NUMBER");
+if (missingVars.length > 0) {
+  console.warn(
+    `⚠️  WARNING: Missing .env values: ${missingVars.join(", ")}.\n` +
+    `   The bot will still run and reply to customers, but order alerts to the ` +
+    `owner will NOT be sent until these are set in your .env file.`
+  );
+}
+
 const PRODUCTS = JSON.parse(fs.readFileSync(path.join(__dirname, "products.json")));
 const FAQS = JSON.parse(fs.readFileSync(path.join(__dirname, "faqs.json")));
 
@@ -104,30 +118,43 @@ async function sendButtons(to, bodyText, buttons) {
   );
 }
 
+// WhatsApp list messages allow a maximum of 10 rows total across all
+// sections. If the catalog has more than 10 items, split it into
+// multiple list messages (e.g. "Produce (1/2)", "Produce (2/2)").
+const MAX_ROWS_PER_LIST = 10;
+
 async function sendProductList(to) {
-  const rows = PRODUCTS.map((p) => ({
+  const allRows = PRODUCTS.map((p) => ({
     id: `PROD_${p.id}`,
     title: p.name.slice(0, 24),
     description: `${CURRENCY} ${p.price} per ${p.unit}`,
   }));
 
-  return axios.post(
-    GRAPH_URL,
-    {
-      messaging_product: "whatsapp",
-      to,
-      type: "interactive",
-      interactive: {
-        type: "list",
-        body: { text: "Tap 'View Catalog' to pick an item to add to your order." },
-        action: {
-          button: "View Catalog",
-          sections: [{ title: "Available Produce", rows }],
+  const chunks = [];
+  for (let i = 0; i < allRows.length; i += MAX_ROWS_PER_LIST) {
+    chunks.push(allRows.slice(i, i + MAX_ROWS_PER_LIST));
+  }
+
+  for (let i = 0; i < chunks.length; i++) {
+    const label = chunks.length > 1 ? ` (${i + 1}/${chunks.length})` : "";
+    await axios.post(
+      GRAPH_URL,
+      {
+        messaging_product: "whatsapp",
+        to,
+        type: "interactive",
+        interactive: {
+          type: "list",
+          body: { text: `Tap 'View Catalog' to pick an item to add to your order.${label}` },
+          action: {
+            button: "View Catalog",
+            sections: [{ title: `Available Produce${label}`, rows: chunks[i] }],
+          },
         },
       },
-    },
-    { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } }
-  );
+      { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } }
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -162,7 +189,13 @@ function cartSummary(cart) {
 }
 
 async function notifyOwner(waId, session) {
-  if (!OWNER_WHATSAPP_NUMBER) return;
+  if (!OWNER_WHATSAPP_NUMBER) {
+    console.error(
+      `❌ Could not send order alert: OWNER_WHATSAPP_NUMBER is not set in .env. ` +
+      `This order from ${waId} was NOT delivered to the owner.`
+    );
+    return;
+  }
   const tag = session.type === "corporate" ? "🏢 CORPORATE ORDER" : "🙋 INDIVIDUAL ORDER";
   const msg =
     `${tag}\n\n` +
@@ -172,7 +205,11 @@ async function notifyOwner(waId, session) {
     `Requested date: ${session.date}\n\n` +
     `Items:\n${cartSummary(session.cart)}\n\n` +
     `Payment: Cash on delivery`;
-  await sendText(OWNER_WHATSAPP_NUMBER, msg);
+  try {
+    await sendText(OWNER_WHATSAPP_NUMBER, msg);
+  } catch (err) {
+    console.error("❌ Failed to send order alert to owner:", err.response?.data || err.message);
+  }
 }
 
 async function handleMessage(waId, incoming) {
