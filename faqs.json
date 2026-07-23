@@ -9,7 +9,7 @@
   },
   {
     "keywords": ["area", "location", "deliver to", "do you deliver"],
-    "answer": "We deliver across [Namibia]. Let us know your area and we'll confirm if we cover it."
+    "answer": "We deliver across Windhoek and surrounding areas. Let us know your area and we'll confirm if we cover it."
   },
   {
     "keywords": ["minimum order", "smallest order"],
@@ -22,5 +22,13 @@
   {
     "keywords": ["cancel", "change order", "edit order"],
     "answer": "To cancel or change an order, just message us here directly and we'll sort it out for you."
+  },
+  {
+    "keywords": ["bachelor box", "spinster box", "what's in the bachelor", "solo box"],
+    "answer": "The Bachelor/Spinster Box (3kg weekly, N$60) includes: 1kg Potatoes, 0.5kg Tomatoes, 0.5kg Onions, 0.5kg Carrots, 0.5kg Cabbage."
+  },
+  {
+    "keywords": ["household box", "family box", "what's in the household", "family of 5"],
+    "answer": "The Household Box (12kg weekly, N$240, feeds a family of 5) includes: 3kg Potatoes, 2kg Tomatoes, 2kg Onions, 1.5kg Carrots, 1.5kg Cabbage, 2kg Butternut & Sweet Potato."
   }
 ]
