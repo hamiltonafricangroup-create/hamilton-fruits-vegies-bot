@@ -27,6 +27,7 @@ const {
   PHONE_NUMBER_ID,         // your WhatsApp Business phone number ID
   VERIFY_TOKEN,            // any string you choose, used to verify webhook
   OWNER_WHATSAPP_NUMBER,   // YOUR number (with country code, no +) to receive order alerts
+  CATALOG_ID,              // your Commerce Manager catalog ID (for product photo cards)
   BUSINESS_NAME = "Our Fruit & Veg Delivery",
   CURRENCY = "KES",
   PORT = 3000,
@@ -40,6 +41,7 @@ if (!WHATSAPP_TOKEN) missingVars.push("WHATSAPP_TOKEN");
 if (!PHONE_NUMBER_ID) missingVars.push("PHONE_NUMBER_ID");
 if (!VERIFY_TOKEN) missingVars.push("VERIFY_TOKEN");
 if (!OWNER_WHATSAPP_NUMBER) missingVars.push("OWNER_WHATSAPP_NUMBER");
+if (!CATALOG_ID) missingVars.push("CATALOG_ID (needed for product photo catalog)");
 if (missingVars.length > 0) {
   console.warn(
     `⚠️  WARNING: Missing .env values: ${missingVars.join(", ")}.\n` +
@@ -118,43 +120,38 @@ async function sendButtons(to, bodyText, buttons) {
   );
 }
 
-// WhatsApp list messages allow a maximum of 10 rows total across all
-// sections. If the catalog has more than 10 items, split it into
-// multiple list messages (e.g. "Produce (1/2)", "Produce (2/2)").
-const MAX_ROWS_PER_LIST = 10;
-
+// Sends a WhatsApp catalog message: photo cards for each product, with a
+// native "Add to cart" flow. WhatsApp allows up to 30 product items per
+// message, so 16 products fits comfortably in a single message.
 async function sendProductList(to) {
-  const allRows = PRODUCTS.map((p) => ({
-    id: `PROD_${p.id}`,
-    title: p.name.slice(0, 24),
-    description: `${CURRENCY} ${p.price} per ${p.unit}`,
+  const productItems = PRODUCTS.map((p) => ({
+    product_retailer_id: p.id, // must match the Retailer ID you set in Commerce Manager
   }));
 
-  const chunks = [];
-  for (let i = 0; i < allRows.length; i += MAX_ROWS_PER_LIST) {
-    chunks.push(allRows.slice(i, i + MAX_ROWS_PER_LIST));
-  }
-
-  for (let i = 0; i < chunks.length; i++) {
-    const label = chunks.length > 1 ? ` (${i + 1}/${chunks.length})` : "";
-    await axios.post(
-      GRAPH_URL,
-      {
-        messaging_product: "whatsapp",
-        to,
-        type: "interactive",
-        interactive: {
-          type: "list",
-          body: { text: `Tap 'View Catalog' to pick an item to add to your order.${label}` },
-          action: {
-            button: "View Catalog",
-            sections: [{ title: `Available Produce${label}`, rows: chunks[i] }],
-          },
+  return axios.post(
+    GRAPH_URL,
+    {
+      messaging_product: "whatsapp",
+      to,
+      type: "interactive",
+      interactive: {
+        type: "product_list",
+        header: { type: "text", text: BUSINESS_NAME },
+        body: { text: "Browse our catalog below and tap items to add them to your cart, then tap the cart icon to checkout." },
+        footer: { text: "Cash on delivery available" },
+        action: {
+          catalog_id: CATALOG_ID,
+          sections: [
+            {
+              title: "Available Produce",
+              product_items: productItems,
+            },
+          ],
         },
       },
-      { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } }
-    );
-  }
+    },
+    { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } }
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -261,7 +258,30 @@ async function handleMessage(waId, incoming) {
 
     // -----------------------------------------------------------------
     case "ORDERING": {
-      // Product picked from list
+      // Customer checked out using the native WhatsApp catalog cart
+      if (incoming.order) {
+        const cart = [];
+        const notFound = [];
+        for (const item of incoming.order) {
+          const product = PRODUCTS.find((p) => p.id === item.product_retailer_id);
+          if (product) {
+            cart.push({ name: product.name, unit: product.unit, price: product.price, qty: item.quantity });
+          } else {
+            notFound.push(item.product_retailer_id);
+          }
+        }
+        if (cart.length === 0) {
+          await sendText(waId, "Sorry, we couldn't match those items to our current catalog. Let's try again.");
+          return sendProductList(waId);
+        }
+        setSession(waId, { cart, state: "ASK_ADDRESS" });
+        if (notFound.length > 0) {
+          await sendText(waId, `Note: some items in your cart are no longer available and were skipped.`);
+        }
+        await sendText(waId, `Great! Here's your cart:\n\n${cartSummary(cart)}`);
+        return sendText(waId, "What's the delivery address?");
+      }
+      // Product picked from the old-style list (fallback, in case catalog isn't set up yet)
       if (incoming.listId && incoming.listId.startsWith("PROD_")) {
         const productId = incoming.listId.replace("PROD_", "");
         const product = PRODUCTS.find((p) => p.id === productId);
@@ -440,6 +460,10 @@ app.post("/webhook", async (req, res) => {
         incoming.listId = interactive.list_reply.id;
         incoming.text = interactive.list_reply.title;
       }
+    } else if (message.type === "order") {
+      // Customer used the native catalog cart and tapped checkout.
+      // product_items: [{ product_retailer_id, quantity, item_price, currency }]
+      incoming.order = message.order.product_items;
     } else {
       incoming.text = "";
     }
