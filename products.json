@@ -14,7 +14,7 @@
   { "id": "butternuts", "name": "Butternuts", "unit": "kg", "price": 14.02 },
   { "id": "lettuce", "name": "Lettuce", "unit": "kg", "price": 58.01 },
   { "id": "bachelor_box", "name": "Bachelor/Spinster Box (3kg)", "unit": "week", "price": 60 },
-  { "id": "household_box", "name": "Household Box (12kg, feeds 5)", "unit": "week", "price": 240 }
-  { "id": "normal_fruit_combo", "name": "Fruit Combo", "unit": "week", "price": 99 }
+  { "id": "household_box", "name": "Household Box (12kg, feeds 5)", "unit": "week", "price": 240 },
+  { "id": "normal_fruit_combo", "name": "Fruit Combo", "unit": "week", "price": 99 },
    { "id": "bigger_fruit_combo", "name": "Mega Fruit Combo", "unit": "week", "price": 199 }
 ]
